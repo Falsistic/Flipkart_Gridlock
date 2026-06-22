@@ -10,7 +10,7 @@ export const eventCauses = [
   "public_event",
   "procession",
   "vip_movement",
-  "protest"
+  "protest",
 ] as const;
 
 export const corridors = [
@@ -21,36 +21,52 @@ export const corridors = [
   "South Corridor",
   "East Corridor",
   "West Corridor",
-  "Unknown"
+  "Unknown",
 ] as const;
 
-export type EventCause = (typeof eventCauses)[number];
-export type Corridor = (typeof corridors)[number];
+export type EventCause  = (typeof eventCauses)[number];
+export type Corridor    = (typeof corridors)[number];
 export type ImpactLevel = "Low" | "Medium" | "High" | "Critical";
 
+// ── request / response shapes ────────────────────────────────────────────────
+
 export type PredictionRequest = {
-  event_cause: EventCause;
-  corridor: Corridor;
-  hour: number;
-  day_of_week: number;
-  month: number;
-  is_weekend: boolean;
+  event_cause:  EventCause;
+  corridor:     Corridor;
+  hour:         number;
+  day_of_week:  number;
+  month:        number;
+  is_weekend:   boolean;
 };
 
+/** Raw shape returned by the Flask /predict endpoint. */
 export type BackendPredictionResponse = {
-  impact_level: string;
-  event_cause: string;
-  police: number;
-  volunteers: number;
-  barricades: number;
-  diversion: string;
+  impact_level:        string;
+  event_cause:         string;
+  police:              number;
+  volunteers:          number;
+  barricades:          number;
+  diversion:           string;
+  confidence?:         number | null;
+  class_probabilities?: Partial<Record<ImpactLevel, number>>;
+  predicted_at?:        string;
 };
 
+/** Camel-cased, UI-ready prediction result. */
 export type PredictionResponse = {
-  impactLevel: ImpactLevel;
-  responsePriority: string;
-  policeOfficers: number;
-  volunteers: number;
-  barricades: number;
+  impactLevel:             ImpactLevel;
+  responsePriority:        string;
+  policeOfficers:          number;
+  volunteers:              number;
+  barricades:              number;
   diversionRecommendation: string;
+  confidence:              number | null;
+  classProbabilities:      Partial<Record<ImpactLevel, number>>;
+  predictedAt:             string;
+};
+
+/** One entry stored in the recent-predictions history. */
+export type HistoryEntry = PredictionResponse & {
+  eventCause: EventCause;
+  corridor:   Corridor;
 };
