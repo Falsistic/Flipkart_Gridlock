@@ -201,4 +201,4 @@ The model is trained on the **Astram anonymised event log** — real Bengaluru T
 
 ## Team
 
-Built by **Navya Sardana** and **Utkarsh** for Flipkart Gridlock.
+Built by **Navya Sardana** and **Kumar Utkarsh** for Flipkart Gridlock.
