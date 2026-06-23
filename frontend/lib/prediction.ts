@@ -7,7 +7,7 @@ import type {
 
 // Set NEXT_PUBLIC_API_URL in .env.local to point at your backend.
 // Falls back to localhost for local development.
-const API_URL = "https://flipkart-gridlock-um4n.vercel.app/predict";
+const API_URL = "https://flipkart-gridlock-um4n.vercel.app";
 const PRIORITY: Record<ImpactLevel, string> = {
   Low:      "Routine Response",
   Medium:   "Standard Response",
