@@ -132,10 +132,7 @@ def predict():
         # Resource / diversion plan (now time- and corridor-aware)
         plan = generate_response_plan(
             impact_level,
-            row["event_cause"],
-            row["hour"],
-            row["day_of_week"],
-            row["corridor"],
+            row["event_cause"]
         )
         plan["confidence"]         = confidence
         plan["class_probabilities"] = class_probs
