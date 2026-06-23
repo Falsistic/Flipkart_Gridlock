@@ -38,8 +38,12 @@ VALID_EVENT_CAUSES = {
 }
 
 VALID_CORRIDORS = {
-    "Ring Road", "Outer Ring Road", "NH-48", "Central Corridor",
-    "South Corridor", "East Corridor", "West Corridor", "Unknown",
+    "Non-corridor", "Mysore Road", "Bellary Road 1", "Tumkur Road",
+    "Bellary Road 2", "Hosur Road", "ORR North 1", "Old Madras Road",
+    "Magadi Road", "ORR East 1", "ORR North 2", "Bannerghata Road",
+    "ORR East 2", "West of Chord Road", "ORR West 1", "CBD 2",
+    "Hennur Main Road", "IRR(Thanisandra road)", "Varthur Road",
+    "Old Airport Road", "Airport New South Road", "CBD 1",
 }
 
 app = Flask(__name__)

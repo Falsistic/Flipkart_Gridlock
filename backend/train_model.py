@@ -53,8 +53,12 @@ EVENT_CAUSES = [
 ]
 
 CORRIDORS = [
-    "Ring Road", "Outer Ring Road", "NH-48", "Central Corridor",
-    "South Corridor", "East Corridor", "West Corridor", "Unknown",
+    "Non-corridor", "Mysore Road", "Bellary Road 1", "Tumkur Road",
+    "Bellary Road 2", "Hosur Road", "ORR North 1", "Old Madras Road",
+    "Magadi Road", "ORR East 1", "ORR North 2", "Bannerghata Road",
+    "ORR East 2", "West of Chord Road", "ORR West 1", "CBD 2",
+    "Hennur Main Road", "IRR(Thanisandra road)", "Varthur Road",
+    "Old Airport Road", "Airport New South Road", "CBD 1",
 ]
 
 # Domain-knowledge base scores — drives realistic label distribution
@@ -66,9 +70,14 @@ _EVENT_SCORE: dict[str, int] = {
 }
 
 _CORRIDOR_SCORE: dict[str, int] = {
-    "NH-48": 2, "Central Corridor": 2, "Ring Road": 1,
-    "Outer Ring Road": 1, "South Corridor": 0,
-    "East Corridor": 0,  "West Corridor": 0, "Unknown": 0,
+    "Mysore Road": 3, "Bellary Road 1": 2, "Tumkur Road": 2,
+    "Bellary Road 2": 2, "Hosur Road": 2, "ORR North 1": 2,
+    "Old Madras Road": 2, "Magadi Road": 1, "ORR East 1": 1,
+    "ORR North 2": 1, "Bannerghata Road": 1, "ORR East 2": 1,
+    "West of Chord Road": 1, "ORR West 1": 1, "CBD 2": 1,
+    "Hennur Main Road": 1, "IRR(Thanisandra road)": 1, "Varthur Road": 1,
+    "Old Airport Road": 1, "Airport New South Road": 1, "CBD 1": 1,
+    "Non-corridor": 0,
 }
 
 

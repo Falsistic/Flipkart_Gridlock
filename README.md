@@ -29,7 +29,7 @@ Output:  HIGH PRIORITY
          19 Volunteers  
          12 Barricades
          Diversion: Recommended
-         Based on 728 real incidents on this corridor
+         Based on 743 real incidents on this corridor
 ```
 
 Every recommendation is backed by real data from the Astram (BTP) incident log.
@@ -44,7 +44,7 @@ We analysed every incident before building the model. Three findings directly sh
 |---|---|---|
 | Peak hour | 9 AM rush | **9 PM** (busiest hour by far) |
 | Most common incident | Accidents | **Vehicle breakdowns (60.7%)** |
-| Highest-risk corridor | City centre | **Mysore Road (728 incidents)** |
+| Highest-risk corridor | City centre | **Mysore Road (743 incidents)** |
 
 The resource engine multipliers are derived from these real patterns — not guesswork.
 

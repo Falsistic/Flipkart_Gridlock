@@ -28,21 +28,35 @@ import {
   type Corridor,
   type EventCause,
   type HistoryEntry,
+  type ImpactLevel,
   type PredictionResponse,
-  type Priority,
 } from "@/types/traffic";
 
 // ── priority config ──────────────────────────────────────────────────────────
 
-const PRIORITY_CONFIG: Record<Priority, {
+const PRIORITY_CONFIG: Record<ImpactLevel, {
   banner: string; badge: string; label: string; sub: string; Icon: React.ElementType;
 }> = {
-  High: {
+  Critical: {
     banner: "bg-rose-600",
     badge:  "bg-rose-100 text-rose-700 ring-rose-300",
-    label:  "HIGH PRIORITY",
+    label:  "CRITICAL PRIORITY",
     sub:    "Immediate deployment required",
     Icon:   Siren,
+  },
+  High: {
+    banner: "bg-orange-600",
+    badge:  "bg-orange-100 text-orange-700 ring-orange-300",
+    label:  "HIGH PRIORITY",
+    sub:    "Urgent deployment required",
+    Icon:   AlertTriangle,
+  },
+  Medium: {
+    banner: "bg-amber-600",
+    badge:  "bg-amber-100 text-amber-700 ring-amber-300",
+    label:  "MEDIUM PRIORITY",
+    sub:    "Standard deployment",
+    Icon:   Activity,
   },
   Low: {
     banner: "bg-emerald-600",
@@ -161,9 +175,7 @@ function SelectField({
 // ── result card ──────────────────────────────────────────────────────────────
 
 function ResultCard({ prediction }: { prediction: PredictionResponse }) {
-  const cfg            = PRIORITY_CONFIG[prediction.priority];
-  const corridorEvents = prediction.evidence?.corridor_events ?? 0;
-  const activityPct    = Math.min(Math.round((corridorEvents / 728) * 100), 100);
+  const cfg = PRIORITY_CONFIG[prediction.impactLevel as ImpactLevel];
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-premium">
@@ -205,29 +217,6 @@ function ResultCard({ prediction }: { prediction: PredictionResponse }) {
           </div>
         </div>
 
-        {corridorEvents > 0 && (
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Activity className="h-3.5 w-3.5 text-slate-400" />
-                <span className="text-xs font-semibold text-slate-500">Corridor Activity Level</span>
-              </div>
-              <span className="text-xs font-bold text-slate-950">{activityPct}%</span>
-            </div>
-            <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className={`h-2.5 rounded-full transition-all duration-700 ${
-                  activityPct >= 70 ? "bg-rose-500" : activityPct >= 40 ? "bg-amber-500" : "bg-emerald-500"
-                }`}
-                style={{ width: `${activityPct}%` }}
-              />
-            </div>
-            <p className="mt-1.5 text-xs text-slate-400">
-              {corridorEvents.toLocaleString()} real incidents logged — relative to busiest corridor (728)
-            </p>
-          </div>
-        )}
-
         <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
           <div className="mb-2 flex items-center gap-1.5">
             <Database className="h-3.5 w-3.5 text-blue-600" />
@@ -235,27 +224,13 @@ function ResultCard({ prediction }: { prediction: PredictionResponse }) {
               Why this decision?
             </span>
           </div>
-          {corridorEvents > 0 ? (
-            <p className="text-sm leading-relaxed text-slate-700">
-              This corridor has logged{" "}
-              <span className="font-bold text-slate-950">{corridorEvents.toLocaleString()} real incidents</span>.
-              {prediction.evidence?.corridor_top_cause && (
-                <> The most common cause is{" "}
-                  <span className="font-bold text-slate-950">
-                    {prettyLabel(prediction.evidence.corridor_top_cause)}
-                  </span>.
-                </>
-              )}{" "}
-              Model trained on{" "}
-              <span className="font-bold text-slate-950">
-                {(prediction.evidence?.dataset_events ?? 8054).toLocaleString()} real BTP events
-              </span>.
-            </p>
-          ) : (
-            <p className="text-sm leading-relaxed text-slate-700">
-              This event is <span className="font-bold text-slate-950">off the major corridor network</span> —
-              historically lower priority. Model trained on{" "}
-              <span className="font-bold text-slate-950">8,054 real BTP events</span>.
+          <p className="text-sm leading-relaxed text-slate-700">
+            This recommendation is based on the AI model trained on real Bengaluru traffic incident data.
+            The model considers event type, corridor, time of day, and day of week to predict impact level.
+          </p>
+          {prediction.confidence && (
+            <p className="mt-2 text-xs text-slate-500">
+              Model confidence: <span className="font-bold text-slate-950">{prediction.confidence}%</span>
             </p>
           )}
         </div>
@@ -284,12 +259,12 @@ function EmptyResult() {
 // ── history card ─────────────────────────────────────────────────────────────
 
 function HistoryCard({ entry }: { entry: HistoryEntry }) {
-  const cfg = PRIORITY_CONFIG[entry.priority];
+  const cfg = PRIORITY_CONFIG[entry.impactLevel as ImpactLevel];
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
       <div className="flex items-start justify-between gap-2">
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ring-1 ${cfg.badge}`}>
-          {entry.priority}
+          {entry.responsePriority}
         </span>
         <span className="shrink-0 text-xs text-slate-400">{timeAgo(entry.predictedAt)}</span>
       </div>
