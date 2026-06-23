@@ -93,6 +93,18 @@ def _validate(payload: dict) -> list[str]:
 def health():
     return jsonify({"status": "ok", "model_loaded": True})
 
+@app.get("/")
+def root():
+    return jsonify({
+        "service": "Flipkart Gridlock Backend",
+        "status": "running",
+        "endpoints": [
+            "/health",
+            "/history",
+            "/predict"
+        ]
+    })
+
 
 @app.get("/history")
 def history():
@@ -152,6 +164,8 @@ def predict():
         })
 
         return jsonify(plan)
+
+    
 
     except Exception as exc:
         app.logger.exception("Prediction failed")

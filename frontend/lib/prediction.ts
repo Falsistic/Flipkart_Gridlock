@@ -7,7 +7,7 @@ import type {
 
 // Set NEXT_PUBLIC_API_URL in .env.local to point at your backend.
 // Falls back to localhost for local development.
-const API_URL = "http://127.0.0.1:5001";
+const API_URL = "https://flipkart-gridlock-jb9e.vercel.app/predict";
 const PRIORITY: Record<ImpactLevel, string> = {
   Low:      "Routine Response",
   Medium:   "Standard Response",
