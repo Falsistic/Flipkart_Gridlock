@@ -331,7 +331,7 @@ export default function TrafficCommand() {
 
       {/* ── NAV ── */}
       <nav className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3 sm:px-8">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600">
               <Siren className="h-4 w-4 text-white" />
@@ -360,7 +360,7 @@ export default function TrafficCommand() {
 
       {/* ── HERO ── */}
       <div className="bg-slate-950">
-        <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:py-24">
+        <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:py-8">
           <div className="grid items-center gap-12 lg:grid-cols-2">
 
             {/* left — problem + CTA */}
