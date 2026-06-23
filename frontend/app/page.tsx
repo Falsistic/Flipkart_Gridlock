@@ -3,25 +3,24 @@
 import { FormEvent, useMemo, useState } from "react";
 import {
   Activity,
+  AlertTriangle,
   ArrowDown,
   ArrowRight,
-  Brain,
+  BarChart3,
   CalendarDays,
-  Check,
+  CheckCircle,
   ChevronDown,
   Clock,
-  GitBranch,
+  Database,
   History,
-  Layers3,
   MapPin,
   Route,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  UsersRound,
-  Workflow,
+  Shield,
+  Siren,
+  TrendingUp,
+  Users,
+  Zap,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { predictTrafficImpact } from "@/lib/prediction";
 import {
   corridors,
@@ -29,45 +28,35 @@ import {
   type Corridor,
   type EventCause,
   type HistoryEntry,
-  type ImpactLevel,
   type PredictionResponse,
+  type Priority,
 } from "@/types/traffic";
 
-// ── style maps ───────────────────────────────────────────────────────────────
+// ── priority config ──────────────────────────────────────────────────────────
 
-const impactStyles: Record<ImpactLevel, string> = {
-  Low:      "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  Medium:   "bg-amber-50  text-amber-700  ring-amber-200",
-  High:     "bg-orange-50 text-orange-700 ring-orange-200",
-  Critical: "bg-rose-50   text-rose-700   ring-rose-200",
+const PRIORITY_CONFIG: Record<Priority, {
+  banner: string; badge: string; label: string; sub: string; Icon: React.ElementType;
+}> = {
+  High: {
+    banner: "bg-rose-600",
+    badge:  "bg-rose-100 text-rose-700 ring-rose-300",
+    label:  "HIGH PRIORITY",
+    sub:    "Immediate deployment required",
+    Icon:   Siren,
+  },
+  Low: {
+    banner: "bg-emerald-600",
+    badge:  "bg-emerald-100 text-emerald-700 ring-emerald-300",
+    label:  "LOW PRIORITY",
+    sub:    "Routine response",
+    Icon:   CheckCircle,
+  },
 };
-
-const confidenceBarColor = (c: number) =>
-  c >= 75 ? "bg-emerald-500" : c >= 50 ? "bg-amber-500" : "bg-rose-500";
-
-// ── static data ──────────────────────────────────────────────────────────────
-
-const futureFeatures = [
-  "Live Traffic Feeds",
-  "GIS Integration",
-  "Route Optimization",
-  "Emergency Response Planning",
-  "Crowd Forecasting",
-];
-
-// Impact Level row is shown in the badge — exclude from the repeating rows.
-const resultRows: Array<[string, keyof PredictionResponse, LucideIcon]> = [
-  ["Response Priority",        "responsePriority",        Workflow],
-  ["Police Officers",          "policeOfficers",          UsersRound],
-  ["Volunteers",               "volunteers",              UsersRound],
-  ["Barricades",               "barricades",              Layers3],
-  ["Diversion Recommendation", "diversionRecommendation", Route],
-];
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function prettyLabel(value: string) {
-  return value.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase());
+function prettyLabel(v: string) {
+  return v.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 function getToday() {
@@ -81,135 +70,240 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// ── small reusable components ────────────────────────────────────────────────
+// ── hero demo card ────────────────────────────────────────────────────────────
+// A static preview of what the system outputs — shown in the hero so judges
+// immediately understand the value before they scroll.
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="text-sm font-medium text-slate-700">{children}</label>;
+function HeroDemo() {
+  return (
+    <div className="overflow-hidden rounded-3xl ring-1 ring-white/10">
+      {/* priority banner */}
+      <div className="bg-rose-600 px-6 py-5">
+        <div className="flex items-center gap-3">
+          <Siren className="h-6 w-6 text-white" />
+          <div>
+            <p className="text-xl font-extrabold tracking-tight text-white">HIGH PRIORITY</p>
+            <p className="text-sm text-white/70">Immediate deployment required</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white/5 px-6 py-5">
+        {/* scenario tags */}
+        <div className="mb-5 flex flex-wrap gap-2">
+          {["Congestion", "Mysore Road", "Mon · 9 PM"].map((tag) => (
+            <span key={tag} className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        {/* deployment numbers */}
+        <div className="grid grid-cols-3 gap-3 text-center">
+          {[["24", "Police"], ["19", "Volunteers"], ["12", "Barricades"]].map(([v, l]) => (
+            <div key={l} className="rounded-2xl bg-white/5 py-4 ring-1 ring-white/10">
+              <p className="text-4xl font-extrabold text-white">{v}</p>
+              <p className="mt-1 text-xs text-white/50">{l}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* diversion */}
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2.5 ring-1 ring-white/10">
+          <Route className="h-3.5 w-3.5 text-white/50" />
+          <span className="text-xs text-white/60">Diversion</span>
+          <span className="ml-auto text-xs font-bold text-white">Recommended</span>
+        </div>
+
+        {/* evidence */}
+        <div className="mt-3 rounded-xl bg-blue-500/10 px-4 py-3 ring-1 ring-blue-400/20">
+          <div className="flex items-center gap-1.5">
+            <Database className="h-3.5 w-3.5 text-blue-400" />
+            <p className="text-xs text-blue-300">
+              Based on <span className="font-bold text-blue-200">728 real incidents</span> on Mysore Road
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-4 text-center text-xs text-white/30">
+          ↑ Example output · Fill the form to get yours
+        </p>
+      </div>
+    </div>
+  );
 }
+
+// ── form select ──────────────────────────────────────────────────────────────
 
 function SelectField({
-  id, value, onChange, children,
+  id, label, value, onChange, children,
 }: {
-  id: string; value: string; onChange: (v: string) => void; children: React.ReactNode;
+  id: string; label: string; value: string;
+  onChange: (v: string) => void; children: React.ReactNode;
 }) {
   return (
-    <div className="relative">
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-12 w-full appearance-none rounded-lg border border-slate-200 bg-white px-4 pr-11 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-      >
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="text-sm font-semibold text-slate-700">{label}</label>
+      <div className="relative">
+        <select
+          id={id} value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-11 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+        >
+          {children}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      </div>
     </div>
   );
 }
 
-function InputField(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className="h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-    />
-  );
-}
+// ── result card ──────────────────────────────────────────────────────────────
 
-/** Animated progress bar showing the model's confidence in its prediction. */
-function ConfidenceBar({ confidence }: { confidence: number }) {
+function ResultCard({ prediction }: { prediction: PredictionResponse }) {
+  const cfg            = PRIORITY_CONFIG[prediction.priority];
+  const corridorEvents = prediction.evidence?.corridor_events ?? 0;
+  const activityPct    = Math.min(Math.round((corridorEvents / 728) * 100), 100);
+
   return (
-    <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Activity className="h-3.5 w-3.5 text-slate-400" />
-          <span className="text-sm font-medium text-slate-600">Model Confidence</span>
+    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-premium">
+      <div className={`${cfg.banner} px-6 py-5 text-white`}>
+        <div className="flex items-center gap-3">
+          <cfg.Icon className="h-7 w-7" />
+          <div>
+            <p className="text-2xl font-extrabold tracking-tight">{cfg.label}</p>
+            <p className="text-sm opacity-80 mt-0.5">{cfg.sub}</p>
+          </div>
         </div>
-        <span className="text-sm font-bold text-slate-950">{confidence}%</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-        <div
-          className={`h-2 rounded-full transition-all duration-700 ${confidenceBarColor(confidence)}`}
-          style={{ width: `${confidence}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
-/** 2×2 grid showing each impact class's predicted probability. */
-function ClassProbabilities({
-  probs,
-}: {
-  probs: Partial<Record<ImpactLevel, number>>;
-}) {
-  const levels: ImpactLevel[] = ["Low", "Medium", "High", "Critical"];
-  return (
-    <div className="mt-3 grid grid-cols-2 gap-2">
-      {levels.map((level) => {
-        const pct = Math.round((probs[level] ?? 0) * 100);
-        return (
-          <div key={level} className="rounded-lg border border-slate-100 bg-white px-3 py-2">
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">{level}</span>
-              <span className="text-xs font-bold text-slate-800">{pct}%</span>
+      <div className="space-y-5 p-6">
+        <div>
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">
+            Deployment Plan
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Police",     value: prediction.policeOfficers, Icon: Shield        },
+              { label: "Volunteers", value: prediction.volunteers,     Icon: Users         },
+              { label: "Barricades", value: prediction.barricades,     Icon: AlertTriangle },
+            ].map(({ label, value, Icon }) => (
+              <div key={label} className="rounded-2xl bg-slate-50 p-4 text-center">
+                <Icon className="mx-auto mb-2 h-5 w-5 text-slate-400" />
+                <p className="text-4xl font-extrabold text-slate-950">{value}</p>
+                <p className="mt-1 text-xs text-slate-500">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+          <Route className="h-4 w-4 shrink-0 text-slate-400" />
+          <div>
+            <p className="text-xs text-slate-500">Traffic Diversion</p>
+            <p className="text-sm font-bold text-slate-950">{prediction.diversionRecommendation}</p>
+          </div>
+        </div>
+
+        {corridorEvents > 0 && (
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Activity className="h-3.5 w-3.5 text-slate-400" />
+                <span className="text-xs font-semibold text-slate-500">Corridor Activity Level</span>
+              </div>
+              <span className="text-xs font-bold text-slate-950">{activityPct}%</span>
             </div>
-            <div className="h-1 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-1 rounded-full bg-blue-500 transition-all duration-700"
-                style={{ width: `${pct}%` }}
+                className={`h-2.5 rounded-full transition-all duration-700 ${
+                  activityPct >= 70 ? "bg-rose-500" : activityPct >= 40 ? "bg-amber-500" : "bg-emerald-500"
+                }`}
+                style={{ width: `${activityPct}%` }}
               />
             </div>
+            <p className="mt-1.5 text-xs text-slate-400">
+              {corridorEvents.toLocaleString()} real incidents logged — relative to busiest corridor (728)
+            </p>
           </div>
-        );
-      })}
+        )}
+
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+          <div className="mb-2 flex items-center gap-1.5">
+            <Database className="h-3.5 w-3.5 text-blue-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-700">
+              Why this decision?
+            </span>
+          </div>
+          {corridorEvents > 0 ? (
+            <p className="text-sm leading-relaxed text-slate-700">
+              This corridor has logged{" "}
+              <span className="font-bold text-slate-950">{corridorEvents.toLocaleString()} real incidents</span>.
+              {prediction.evidence?.corridor_top_cause && (
+                <> The most common cause is{" "}
+                  <span className="font-bold text-slate-950">
+                    {prettyLabel(prediction.evidence.corridor_top_cause)}
+                  </span>.
+                </>
+              )}{" "}
+              Model trained on{" "}
+              <span className="font-bold text-slate-950">
+                {(prediction.evidence?.dataset_events ?? 8054).toLocaleString()} real BTP events
+              </span>.
+            </p>
+          ) : (
+            <p className="text-sm leading-relaxed text-slate-700">
+              This event is <span className="font-bold text-slate-950">off the major corridor network</span> —
+              historically lower priority. Model trained on{" "}
+              <span className="font-bold text-slate-950">8,054 real BTP events</span>.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-/** Compact card for the prediction history strip. */
+// ── empty state ──────────────────────────────────────────────────────────────
+
+function EmptyResult() {
+  return (
+    <div className="flex min-h-[460px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-white p-10 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
+        <Zap className="h-8 w-8 text-slate-400" />
+      </div>
+      <h3 className="mt-5 text-lg font-bold text-slate-950">Ready to predict</h3>
+      <p className="mt-2 max-w-xs text-sm text-slate-500">
+        Fill in the incident details and click{" "}
+        <span className="font-semibold text-slate-700">Get Deployment Plan</span>.
+      </p>
+    </div>
+  );
+}
+
+// ── history card ─────────────────────────────────────────────────────────────
+
 function HistoryCard({ entry }: { entry: HistoryEntry }) {
+  const cfg = PRIORITY_CONFIG[entry.priority];
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
       <div className="flex items-start justify-between gap-2">
-        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${impactStyles[entry.impactLevel]}`}>
-          {entry.impactLevel}
+        <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ring-1 ${cfg.badge}`}>
+          {entry.priority}
         </span>
         <span className="shrink-0 text-xs text-slate-400">{timeAgo(entry.predictedAt)}</span>
       </div>
-      <p className="mt-3 truncate text-sm font-semibold text-slate-950">
-        {prettyLabel(entry.eventCause)}
-      </p>
+      <p className="mt-3 truncate text-sm font-bold text-slate-950">{prettyLabel(entry.eventCause)}</p>
       <p className="truncate text-xs text-slate-500">{entry.corridor}</p>
-
-      {entry.confidence != null && (
-        <div className="mt-3">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Confidence</span>
-            <span className="text-xs font-semibold text-slate-700">{entry.confidence}%</span>
-          </div>
-          <div className="h-1 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className={`h-1 rounded-full ${confidenceBarColor(entry.confidence)}`}
-              style={{ width: `${entry.confidence}%` }}
-            />
-          </div>
-        </div>
-      )}
-
       <div className="mt-3 grid grid-cols-3 gap-1 text-center">
-        {(
-          [
-            ["Police",  entry.policeOfficers],
-            ["Vol.",    entry.volunteers],
-            ["Barr.",   entry.barricades],
-          ] as [string, number][]
-        ).map(([label, val]) => (
-          <div key={label} className="rounded-lg bg-slate-50 py-1.5">
-            <p className="text-xs font-bold text-slate-950">{val}</p>
-            <p className="text-[10px] text-slate-400">{label}</p>
-          </div>
-        ))}
+        {([["Police", entry.policeOfficers], ["Vol.", entry.volunteers], ["Barr.", entry.barricades]] as [string, number][]).map(
+          ([l, v]) => (
+            <div key={l} className="rounded-lg bg-slate-50 py-1.5">
+              <p className="text-sm font-extrabold text-slate-950">{v}</p>
+              <p className="text-[10px] text-slate-400">{l}</p>
+            </div>
+          )
+        )}
       </div>
     </div>
   );
@@ -217,11 +311,11 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
 
 // ── page ─────────────────────────────────────────────────────────────────────
 
-export default function ExperimentHome() {
+export default function TrafficCommand() {
   const [eventCause, setEventCause] = useState<EventCause>("accident");
-  const [corridor,   setCorridor]   = useState<Corridor>("Ring Road");
+  const [corridor,   setCorridor]   = useState<Corridor>("Mysore Road");
   const [date,       setDate]       = useState(getToday);
-  const [time,       setTime]       = useState("18:30");
+  const [time,       setTime]       = useState("21:00");
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
   const [history,    setHistory]    = useState<HistoryEntry[]>([]);
   const [isLoading,  setIsLoading]  = useState(false);
@@ -244,16 +338,11 @@ export default function ExperimentHome() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-
     try {
       const result = await predictTrafficImpact(payload);
       setPrediction(result);
-      // Prepend to history (cap at 10 entries)
       setHistory((prev) =>
-        [
-          { ...result, eventCause, corridor, predictedAt: new Date().toISOString() },
-          ...prev,
-        ].slice(0, 10)
+        [{ ...result, eventCause, corridor, predictedAt: new Date().toISOString() }, ...prev].slice(0, 10)
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Backend is unavailable");
@@ -263,242 +352,220 @@ export default function ExperimentHome() {
   }
 
   return (
-    <main className="overflow-hidden">
+    <main className="min-h-screen bg-slate-50">
 
-      {/* ── NAV ──────────────────────────────────────────────────────────── */}
-      <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
-        <a href="#top" className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-white shadow-soft">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <span className="text-sm font-semibold tracking-tight text-slate-950">Traffic AI</span>
-        </a>
-        <a
-          href="#prediction"
-          className="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950 sm:inline-flex"
-        >
-          Start Prediction
-        </a>
-      </header>
-
-      {/* ── HERO ─────────────────────────────────────────────────────────── */}
-      <section
-        id="top"
-        className="mx-auto flex min-h-[calc(100vh-80px)] max-w-7xl flex-col justify-center px-5 pb-16 pt-10 sm:px-8"
-      >
-        <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm backdrop-blur">
-              <Brain className="h-4 w-4 text-blue-600" />
-              AI deployment planning for traffic authorities
+      {/* ── NAV ── */}
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600">
+              <Siren className="h-4 w-4 text-white" />
             </div>
-            <h1 className="mt-7 max-w-4xl text-5xl font-semibold leading-[1.02] tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
-              AI-Powered Event Traffic Management System
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
-              Predict traffic impact and receive instant deployment recommendations.
-            </p>
-            <div className="mt-9 flex flex-wrap items-center gap-4">
-              <a
-                href="#prediction"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white shadow-premium transition hover:-translate-y-0.5 hover:bg-slate-800"
-              >
-                Start Prediction
-                <ArrowRight className="h-4 w-4" />
-              </a>
-              <a
-                href="#how-it-works"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold text-slate-600 transition hover:text-slate-950"
-              >
-                See workflow
-                <ArrowDown className="h-4 w-4" />
-              </a>
+            <div>
+              <p className="text-sm font-extrabold leading-tight text-white">
+                Bengaluru Traffic Command
+              </p>
+              <p className="text-xs text-slate-500">AI-powered deployment decisions</p>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 rounded-full bg-emerald-950 px-3 py-1 text-xs font-bold text-emerald-400 ring-1 ring-emerald-800">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              Live
+            </span>
+            <a
+              href="#predict"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-slate-950 transition hover:bg-slate-100"
+            >
+              Try it <ArrowRight className="h-3 w-3" />
+            </a>
+          </div>
+        </div>
+      </nav>
 
-          <div className="glass-panel rounded-3xl border border-white p-5 shadow-premium">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-950">Prediction workflow</p>
-                  <p className="mt-1 text-sm text-slate-500">One request. One operational answer.</p>
-                </div>
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
-                  Ready
-                </span>
+      {/* ── HERO ── */}
+      <div className="bg-slate-950">
+        <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:py-24">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+
+            {/* left — problem + CTA */}
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-rose-950 px-3 py-1.5 text-xs font-semibold text-rose-300 ring-1 ring-rose-800 mb-6">
+                <Siren className="h-3.5 w-3.5" />
+                Flipkart Gridlock Hackathon
               </div>
-              <div className="mt-7 space-y-3">
+
+              <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
+                When Bengaluru's roads stop moving,
+                <span className="text-rose-400"> every second counts.</span>
+              </h1>
+
+              <p className="mt-6 text-lg leading-relaxed text-slate-400 max-w-lg">
+                Traffic officers make high-stakes deployment decisions manually — under pressure, in seconds.
+                This system does it for them, backed by <span className="text-white font-semibold">8,054 real BTP incidents</span>.
+              </p>
+
+              {/* problem → data → solution */}
+              <div className="mt-10 space-y-3">
                 {[
-                  ["Event context",   "Cause, corridor, date, and time"],
-                  ["Impact model",    "Derives hour, day, month, weekend signal"],
-                  ["Deployment plan", "Resources and diversion recommendation"],
-                ].map(([title, copy], index) => (
-                  <div key={title} className="flex gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-sm font-semibold text-slate-950 shadow-sm">
-                      {index + 1}
-                    </span>
+                  {
+                    step: "The problem",
+                    text: "Manual deployment decisions waste critical minutes during incidents.",
+                    color: "bg-rose-500",
+                  },
+                  {
+                    step: "The data",
+                    text: "We analysed every Bengaluru traffic incident from Nov 2023 to Apr 2024.",
+                    color: "bg-amber-500",
+                  },
+                  {
+                    step: "The solution",
+                    text: "One form. Instant AI-backed deployment plan. Police, volunteers, barricades.",
+                    color: "bg-emerald-500",
+                  },
+                ].map(({ step, text, color }) => (
+                  <div key={step} className="flex items-start gap-4 rounded-2xl bg-white/5 px-4 py-4 ring-1 ring-white/10">
+                    <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${color}`} />
                     <div>
-                      <p className="text-sm font-semibold text-slate-950">{title}</p>
-                      <p className="mt-1 text-sm text-slate-500">{copy}</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{step}</p>
+                      <p className="mt-0.5 text-sm text-slate-300">{text}</p>
                     </div>
                   </div>
                 ))}
               </div>
+
+              <div className="mt-8 flex items-center gap-4">
+                <a
+                  href="#predict"
+                  className="inline-flex h-12 items-center gap-2 rounded-xl bg-rose-600 px-6 text-sm font-bold text-white transition hover:bg-rose-700"
+                >
+                  Get a Deployment Plan <ArrowRight className="h-4 w-4" />
+                </a>
+                <a
+                  href="#insights"
+                  className="inline-flex h-12 items-center gap-2 rounded-xl px-2 text-sm font-semibold text-slate-400 transition hover:text-white"
+                >
+                  See the data <ArrowDown className="h-4 w-4" />
+                </a>
+              </div>
             </div>
+
+            {/* right — live demo preview */}
+            <div className="lg:pl-8">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-600">
+                Example output
+              </p>
+              <HeroDemo />
+            </div>
+
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── PREDICTION ───────────────────────────────────────────────────── */}
-      <section id="prediction" className="mx-auto max-w-7xl px-5 py-16 sm:px-8">
-        <div className="mb-8 max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-600">Prediction</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-            Plan a response in seconds.
-          </h2>
+      {/* ── PREDICTION ── */}
+      <div id="predict" className="mx-auto max-w-7xl px-5 py-14 sm:px-8">
+        <div className="mb-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-rose-600 mb-2">Live Prediction</p>
+          <h2 className="text-3xl font-extrabold text-slate-950">Get a Deployment Plan</h2>
+          <p className="mt-2 text-slate-500 max-w-xl">
+            Enter the incident details below. The model predicts priority from real BTP data and
+            calculates exact resource numbers.
+          </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
 
-          {/* Form */}
+          {/* form */}
           <form
             onSubmit={handleSubmit}
-            className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft sm:p-7"
+            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8"
           >
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <FieldLabel>Event Cause</FieldLabel>
-                <SelectField
-                  id="event-cause"
-                  value={eventCause}
-                  onChange={(v) => setEventCause(v as EventCause)}
-                >
-                  {eventCauses.map((c) => (
-                    <option key={c} value={c}>{prettyLabel(c)}</option>
-                  ))}
-                </SelectField>
-              </div>
+            <div className="space-y-5">
+              <SelectField id="event-cause" label="What happened?" value={eventCause} onChange={(v) => setEventCause(v as EventCause)}>
+                {eventCauses.map((c) => <option key={c} value={c}>{prettyLabel(c)}</option>)}
+              </SelectField>
 
-              <div className="space-y-2 sm:col-span-2">
-                <FieldLabel>Corridor</FieldLabel>
-                <SelectField
-                  id="corridor"
-                  value={corridor}
-                  onChange={(v) => setCorridor(v as Corridor)}
-                >
-                  {corridors.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </SelectField>
-              </div>
+              <SelectField id="corridor" label="Where? (Corridor)" value={corridor} onChange={(v) => setCorridor(v as Corridor)}>
+                {corridors.map((c) => <option key={c} value={c}>{c}</option>)}
+              </SelectField>
 
-              <div className="space-y-2">
-                <FieldLabel>Date</FieldLabel>
-                <div className="relative">
-                  <InputField
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                  <CalendarDays className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Date</label>
+                  <div className="relative">
+                    <input
+                      type="date" value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    />
+                    <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <FieldLabel>Time</FieldLabel>
-                <div className="relative">
-                  <InputField
-                    type="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                  />
-                  <Clock className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Time</label>
+                  <div className="relative">
+                    <input
+                      type="time" value={time}
+                      onChange={(e) => setTime(e.target.value)}
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    />
+                    <Clock className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
               </div>
             </div>
 
             <button
-              type="submit"
-              disabled={isLoading}
-              className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-soft transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+              type="submit" disabled={isLoading}
+              className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-bold text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Send className="h-4 w-4" />
-              {isLoading ? "Predicting…" : "Predict"}
+              {isLoading ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Analysing incident…
+                </>
+              ) : (
+                <>Get Deployment Plan <ArrowRight className="h-4 w-4" /></>
+              )}
             </button>
 
             {error && (
-              <p className="mt-3 rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+              <p className="mt-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                 {error}
               </p>
             )}
+
+            <div className="mt-6 rounded-2xl bg-slate-50 p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">How it works</p>
+              <div className="space-y-2.5">
+                {[
+                  "Enter what happened, where, and when",
+                  "ML model predicts priority from 8,054 real BTP incidents",
+                  "Resource engine calculates exact deployment numbers",
+                ].map((step, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">
+                      {i + 1}
+                    </span>
+                    <p className="text-xs leading-relaxed text-slate-600">{step}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </form>
 
-          {/* Result Card */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft sm:p-7">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
-              <div>
-                <p className="text-sm font-semibold text-slate-500">Prediction Result Card</p>
-                <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-                  Recommended response
-                </h3>
-              </div>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
-                  prediction
-                    ? impactStyles[prediction.impactLevel]
-                    : "bg-slate-50 text-slate-500 ring-slate-200"
-                }`}
-              >
-                {prediction?.impactLevel ?? "Awaiting Prediction"}
-              </span>
-            </div>
-
-            {/* Confidence bar — only shown after a successful prediction */}
-            {prediction?.confidence != null && (
-              <ConfidenceBar confidence={prediction.confidence} />
-            )}
-
-            {/* Result rows */}
-            <div className="mt-4 grid gap-3">
-              {resultRows.map(([label, key, Icon]) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-slate-600 shadow-sm">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <span className="text-sm font-medium text-slate-600">{label}</span>
-                  </div>
-                  <span className="text-right text-sm font-semibold text-slate-950">
-                    {prediction ? String(prediction[key]) : "—"}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Class probabilities breakdown */}
-            {prediction?.classProbabilities &&
-              Object.keys(prediction.classProbabilities).length > 0 && (
-                <>
-                  <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-slate-400">
-                    Class Probabilities
-                  </p>
-                  <ClassProbabilities probs={prediction.classProbabilities} />
-                </>
-              )}
-          </div>
+          {/* result */}
+          {prediction ? <ResultCard prediction={prediction} /> : <EmptyResult />}
         </div>
-      </section>
+      </div>
 
-      {/* ── PREDICTION HISTORY ───────────────────────────────────────────── */}
+      {/* ── HISTORY ── */}
       {history.length > 0 && (
-        <section className="mx-auto max-w-7xl px-5 pb-10 sm:px-8">
+        <div className="mx-auto max-w-7xl px-5 pb-10 sm:px-8">
           <div className="mb-4 flex items-center gap-3">
             <History className="h-5 w-5 text-slate-400" />
-            <h2 className="text-lg font-semibold text-slate-950">Recent Predictions</h2>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+            <h2 className="text-lg font-extrabold text-slate-950">Recent Predictions</h2>
+            <span className="rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-600">
               {history.length}
             </span>
           </div>
@@ -507,75 +574,106 @@ export default function ExperimentHome() {
               <HistoryCard key={`${entry.predictedAt}-${i}`} entry={entry} />
             ))}
           </div>
-        </section>
+        </div>
       )}
 
-      {/* ── HOW IT WORKS ─────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="mx-auto max-w-7xl px-5 py-14 sm:px-8">
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            ["Input",               "Traffic teams enter event cause, corridor, date, and time.",              MapPin],
-            ["AI Prediction",       "The model converts context into temporal and corridor risk signals.",     Brain],
-            ["Resource Allocation", "The system returns deployment and diversion recommendations.",           GitBranch],
-          ].map(([title, copy, Icon]) => (
-            <div key={title as string} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-white">
-                <Icon className="h-5 w-5" />
-              </span>
-              <h3 className="mt-5 text-xl font-semibold text-slate-950">{title as string}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{copy as string}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── FUTURE + ARCHITECTURE ────────────────────────────────────────── */}
-      <section className="mx-auto grid max-w-7xl gap-6 px-5 py-14 sm:px-8 lg:grid-cols-[0.82fr_1.18fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-600">Future Features</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-            Built for the next layer of traffic intelligence.
+      {/* ── DATA INSIGHTS ── */}
+      <div id="insights" className="border-t border-slate-200 bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-rose-600 mb-2">
+            What the data tells us
+          </p>
+          <h2 className="text-3xl font-extrabold text-slate-950">
+            Real insights from 8,054 Bengaluru incidents
           </h2>
-          <div className="mt-6 grid gap-3">
-            {futureFeatures.map((f) => (
-              <div
-                key={f}
-                className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700"
-              >
-                <Check className="h-4 w-4 text-blue-600" />
-                {f}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-600">Architecture</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-            Clean request-to-recommendation flow.
-          </h2>
-          <div className="mt-8 grid items-center gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr]">
+          <p className="mt-2 mb-10 text-slate-500 max-w-2xl">
+            Before building the model, we analysed every incident in the dataset.
+            These findings directly shape how the resource engine works.
+          </p>
+          <div className="grid gap-5 sm:grid-cols-3">
             {[
-              "Frontend Form",
-              "Flask API /predict",
-              "Impact Model",
-              "Recommendation Output",
-              "Authority Action",
-            ].map((item, index) => (
-              <div key={item} className="contents">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-sm font-semibold text-slate-800">
-                  {item}
+              {
+                Icon: Clock,
+                stat: "9 PM",
+                headline: "Peak incident hour — not 9 AM",
+                insight: "Most deployment systems assume morning rush. Real data says the busiest hour is 9 PM. Our resource engine scales accordingly.",
+                color: "text-rose-600", bg: "bg-rose-50",
+              },
+              {
+                Icon: MapPin,
+                stat: "728",
+                headline: "Incidents on Mysore Road alone",
+                insight: "One incident every 5 hours, on average. It's the most incident-prone corridor in Bengaluru — and gets the highest resource weighting in our model.",
+                color: "text-amber-600", bg: "bg-amber-50",
+              },
+              {
+                Icon: BarChart3,
+                stat: "60.7%",
+                headline: "Of all incidents are vehicle breakdowns",
+                insight: "Not accidents, not protests — breakdowns dominate. Our multipliers reflect this: breakdowns on high-traffic corridors trigger significant deployment.",
+                color: "text-blue-600", bg: "bg-blue-50",
+              },
+            ].map(({ Icon, stat, headline, insight, color, bg }) => (
+              <div key={stat} className="rounded-2xl border border-slate-200 p-6">
+                <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${bg}`}>
+                  <Icon className={`h-5 w-5 ${color}`} />
                 </div>
-                {index < 4 && <div className="hidden h-px w-8 flow-line md:block" />}
+                <p className={`text-4xl font-extrabold ${color}`}>{stat}</p>
+                <p className="mt-3 text-sm font-extrabold text-slate-950">{headline}</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">{insight}</p>
               </div>
             ))}
           </div>
-          <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-            The experimental UI sends event context to the Flask prediction endpoint, then displays the
-            model-backed deployment recommendation.
+
+          {/* corridor heatmap strip */}
+          <div className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <p className="mb-5 text-sm font-extrabold text-slate-950">Top corridors by incident volume</p>
+            <div className="space-y-3">
+              {[
+                ["Mysore Road",     728, "bg-rose-500"],
+                ["Bellary Road 1",  607, "bg-rose-400"],
+                ["Tumkur Road",     458, "bg-amber-500"],
+                ["Bellary Road 2",  379, "bg-amber-400"],
+                ["Hosur Road",      297, "bg-amber-300"],
+                ["ORR North 1",     274, "bg-emerald-400"],
+                ["Old Madras Road", 257, "bg-emerald-400"],
+              ].map(([name, count, color]) => (
+                <div key={name as string} className="flex items-center gap-4">
+                  <span className="w-40 shrink-0 text-xs font-semibold text-slate-700 truncate">
+                    {name as string}
+                  </span>
+                  <div className="flex-1 h-2.5 overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      className={`h-2.5 rounded-full ${color as string}`}
+                      style={{ width: `${Math.round((count as number) / 728 * 100)}%` }}
+                    />
+                  </div>
+                  <span className="w-10 shrink-0 text-right text-xs font-bold text-slate-500">
+                    {count as number}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </section>
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div className="border-t border-slate-800 bg-slate-950">
+        <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600">
+                <Siren className="h-4 w-4 text-white" />
+              </div>
+              <p className="text-sm font-extrabold text-white">Bengaluru Traffic Command</p>
+            </div>
+            <p className="text-xs text-slate-500">
+              Built for Flipkart Gridlock · Trained on real Astram BTP data · 8,054 events
+            </p>
+          </div>
+        </div>
+      </div>
 
     </main>
   );
